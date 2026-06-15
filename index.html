@@ -697,9 +697,9 @@ async function syncToSupabase(){
         recurring:!!e.recurring,base_md:e.baseMD||null,floating:e.floating||null}))
     );
     // Claude Notes
-    await sb.from('claude_notes').delete().gte('id',0);
+    await sb.from('claude_notes').delete().gte('id',1);
     if((state.claudeNotes||[]).length)await sb.from('claude_notes').insert(
-      state.claudeNotes.map(n=>({id:n.id,text:n.text,ts:n.ts}))
+      state.claudeNotes.map(n=>({client_id:n.id,text:n.text,ts:n.ts}))
     );
     setSyncDot('ok');
   }catch(err){
