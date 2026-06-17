@@ -410,6 +410,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
 .bonus-item.done .task-check::after{content:'✓';color:#0a0f0a;font-size:9px;font-weight:700}
 .bonus-text{flex:1;font-size:12px}
 .bonus-pts-tag{font-size:9px;font-weight:700;color:#0a0f0a;background:var(--accent4);border-radius:10px;padding:2px 7px;font-family:var(--mono);white-space:nowrap}
+.task-item.tier-gold,.bonus-item.tier-gold{border-color:var(--accent4)}
 .bonus-del{position:absolute;top:6px;right:6px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;display:none;padding:2px 4px}
 .bonus-item:hover .bonus-del{display:block}
 .bonus-edit{position:absolute;top:6px;right:24px;background:none;border:none;color:var(--text3);cursor:pointer;font-size:10px;display:none;padding:2px 4px}
@@ -681,16 +682,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
         </select>
         <button class="add-btn" onclick="addDayTask()">+</button>
       </div>
-      <!-- Best Self for day -->
+      <!-- Daily Tasks for day (merged Normal + Best Self tiers) -->
       <hr class="divider">
-      <div class="section-mini-label">Best Self This Day</div>
-      <div style="font-size:10px;color:var(--text3);margin-bottom:5px">Check off Best Self tasks for this day — works retroactively for past days too.</div>
-      <div id="dayBestSelfList"></div>
-      <!-- Reminders for day -->
-      <hr class="divider">
-      <div class="section-mini-label">Reminders This Day</div>
-      <div style="font-size:10px;color:var(--text3);margin-bottom:5px">Check off reminders for this day — works retroactively for past days too.</div>
-      <div id="dayReminderList"></div>
+      <div class="section-mini-label">Daily Tasks This Day</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:5px">Check off daily tasks for this day — works retroactively for past days too. Adding here adds to the recurring template for every day.</div>
+      <div id="dayDailyTasksList"></div>
+      <div class="task-add-row">
+        <input class="task-input" id="dayDailyTaskInput" placeholder="Add daily task..." onkeydown="if(event.key==='Enter')addDailyTask(true)">
+        <select class="task-cat-select" id="dayDailyTaskTier">
+          <option value="normal">Normal</option>
+          <option value="bestSelf">🌟 Best Self (+25)</option>
+        </select>
+        <button class="add-btn" onclick="addDailyTask(true)">+</button>
+      </div>
       <!-- Goal activity -->
       <hr class="divider">
       <div class="section-mini-label">Goal Progress This Day</div>
@@ -773,7 +777,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
   <div class="card green" id="cardTasks" data-tile="tasks" style="grid-column:span 1;display:none">
     <div class="card-header-row">
       <div style="display:flex;align-items:center;gap:8px">
-        <span class="card-label" style="margin-bottom:0">Today's Tasks</span>
+        <span class="card-label" style="margin-bottom:0">To Do Today</span>
       </div>
     </div>
     <div class="task-list" id="taskList"></div>
@@ -813,26 +817,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
       <div class="week-summary-panel" id="gamifyWeekSummary"></div>
       <hr class="divider">
       <div class="card-header-row">
-        <div class="card-label" style="margin-bottom:0">✅ Daily Reminders</div>
+        <div class="card-label" style="margin-bottom:0">✅ Daily Tasks</div>
         <span style="font-size:10px;color:var(--text3);font-family:var(--mono)">resets 2am CT</span>
       </div>
-      <div class="task-list" id="reminderList"></div>
+      <div class="task-list" id="dailyTasksList"></div>
       <div class="task-add-row">
-        <input class="task-input" id="reminderInput" placeholder="Add daily reminder..." onkeydown="if(event.key==='Enter')addReminder()">
-        <button class="add-btn" onclick="addReminder()">+</button>
-      </div>
-      <hr class="divider">
-      <div class="card-label" style="margin-bottom:7px">🌟 Best Self Tasks</div>
-      <div class="claude-notes-list" id="bonusTaskList" style="max-height:130px"></div>
-      <div class="bonus-add-row">
-        <input class="bonus-input" id="bonusInput" placeholder="Add Best Self task (+25pts)..." onkeydown="if(event.key==='Enter')addBonusTask()">
-        <button class="add-btn" onclick="addBonusTask()">+</button>
+        <input class="task-input" id="dailyTaskInput" placeholder="Add daily task..." onkeydown="if(event.key==='Enter')addDailyTask()">
+        <select class="task-cat-select" id="dailyTaskTier">
+          <option value="normal">Normal</option>
+          <option value="bestSelf">🌟 Best Self (+25)</option>
+        </select>
+        <button class="add-btn" onclick="addDailyTask()">+</button>
       </div>
     </div>
   </div>
 
   <!-- ASK CLAUDE -->
-  <div class="card" data-tile="chat" style="grid-column:1/-1;--card-color:#6c63ff;--card-color2:#b8b4ff">
+  <div class="card" data-tile="chat" style="grid-column:span 2;--card-color:#6c63ff;--card-color2:#b8b4ff">
     <div class="card-header-row">
       <div class="card-label" style="margin-bottom:0">💬 Ask Claude</div>
       <button class="chat-clear-btn" onclick="clearChat()">clear</button>
@@ -845,7 +846,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
   </div>
 
   <!-- ASTRO CLOCK -->
-  <div class="card" data-tile="orloj" style="grid-column:1/-1;--card-color:#f7b731;--card-color2:#ffe9a8">
+  <div class="card" data-tile="orloj" style="grid-column:span 1;--card-color:#f7b731;--card-color2:#ffe9a8">
     <div class="card-header-row">
       <div class="card-label" style="margin-bottom:0">🕐 Orloj</div>
       <span class="astro-date" id="astroDateLabel"></span>
@@ -876,7 +877,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
   </div>
 
   <!-- MEDIA PLAYER -->
-  <div class="card" data-tile="media" style="grid-column:1/-1;--card-color:#ff3b3b;--card-color2:#ff9b9b">
+  <div class="card" data-tile="media" style="grid-column:span 2;--card-color:#ff3b3b;--card-color2:#ff9b9b">
     <div class="card-header-row">
       <div class="card-label" style="margin-bottom:0">▶️ Media Player</div>
       <div class="media-mode-toggle">
@@ -1218,8 +1219,8 @@ function renderDayMetrics(ds){
   row.innerHTML=`${dualRingSVG(s.goldPct,s.greenPct,46,6)}
     <div class="dm-stat">🟢 Daily: <b>${s.greenPct}%</b> (${s.tasksDone+s.remindersDone+s.goalsWorkedDone}/${s.tasksTotal+s.remindersTotal+s.goalsWorkedTotal})</div>
     <div class="dm-stat">🟡 Best Self: <b>${s.goldPct}%</b> (${s.bonusDone}/${s.bonusTotal})</div>
-    <div class="dm-stat">Tasks: <b>${s.tasksDone}/${s.tasksTotal}</b></div>
-    <div class="dm-stat">Reminders: <b>${s.remindersDone}/${s.remindersTotal}</b></div>
+    <div class="dm-stat">To Do Today: <b>${s.tasksDone}/${s.tasksTotal}</b></div>
+    <div class="dm-stat">Daily Tasks: <b>${s.remindersDone}/${s.remindersTotal}</b></div>
     <div class="dm-stat">Goals worked: <b>${s.goalsWorkedDone}/${s.goalsWorkedTotal}</b></div>
     <div class="dm-stat">Points: <b>${s.points>=0?'+':''}${s.points}</b></div>`;
 }
@@ -1357,8 +1358,7 @@ function selectDay(ds){
   document.getElementById('dayPanelHeader').textContent=`${MNs[parseInt(m)-1]} ${parseInt(d)}, ${y}`;
   document.getElementById('dayNoteInput').value=state.notes[ds]||'';
   renderDayTasks(ds);
-  renderDayBestSelf(ds);
-  renderDayReminders(ds);
+  renderDayDailyTasks(ds);
   renderDayGoalActivity(ds);
   renderDayEvents(ds);
   renderDayMetrics(ds);
@@ -1457,31 +1457,21 @@ function closeDay(){
 // Templates (state.bonusTasks / state.dailyReminders) reset daily, but each day's
 // completion is recorded separately in bestSelfHistory/reminderHistory, keyed by date.
 // That's what lets these be checked/unchecked for any past day from the calendar.
-function renderDayBestSelf(ds){
-  const container=document.getElementById('dayBestSelfList');if(!container)return;
+function renderDayDailyTasks(ds){
+  const container=document.getElementById('dayDailyTasksList');if(!container)return;
   container.innerHTML='';
-  const tasks=state.bonusTasks||[];
-  if(!tasks.length){container.innerHTML='<div style="font-size:11px;color:var(--text3);padding:4px 0">No Best Self tasks yet.</div>';return;}
-  const hist=(state.bestSelfHistory||{})[ds]||{};
-  tasks.forEach(b=>{
-    const done=!!hist[b.id];
-    const el=document.createElement('div');el.className=`bonus-item${done?' done':''}`;
-    el.innerHTML=`<div class="task-check${done?' done':''}"></div><div class="bonus-text">${b.text}</div><span class="bonus-pts-tag">+25</span>`;
-    el.querySelector('.task-check').onclick=e=>{e.stopPropagation();toggleBestSelfDay(b.id,ds);};
-    container.appendChild(el);
-  });
-}
-function renderDayReminders(ds){
-  const container=document.getElementById('dayReminderList');if(!container)return;
-  container.innerHTML='';
-  const rems=state.dailyReminders||[];
-  if(!rems.length){container.innerHTML='<div style="font-size:11px;color:var(--text3);padding:4px 0">No daily reminders yet.</div>';return;}
-  const hist=(state.reminderHistory||{})[ds]||{};
-  rems.forEach(r=>{
-    const done=!!hist[r.id];
-    const el=document.createElement('div');el.className=`task-item${done?' done':''}`;
-    el.innerHTML=`<div class="task-check${done?' done':''}"></div><div class="task-text">${r.text}</div><span class="bonus-pts-tag">+5</span>`;
-    el.querySelector('.task-check').onclick=e=>{e.stopPropagation();toggleReminderDay(r.id,ds);};
+  const norm=(state.dailyReminders||[]).map(r=>({...r,tier:'normal'}));
+  const best=(state.bonusTasks||[]).map(b=>({...b,tier:'bestSelf'}));
+  const items=[...norm,...best];
+  if(!items.length){container.innerHTML='<div style="font-size:11px;color:var(--text3);padding:4px 0">No daily tasks yet.</div>';return;}
+  const rHist=(state.reminderHistory||{})[ds]||{};
+  const bHist=(state.bestSelfHistory||{})[ds]||{};
+  items.forEach(it=>{
+    const isBest=it.tier==='bestSelf';
+    const done=!!(isBest?bHist[it.id]:rHist[it.id]);
+    const el=document.createElement('div');el.className=`${isBest?'bonus-item tier-gold':'task-item'}${done?' done':''}`;
+    el.innerHTML=`<div class="task-check${done?' done':''}"></div><div class="${isBest?'bonus-text':'task-text'}">${isBest?'⭐ ':''}${it.text}</div><span class="bonus-pts-tag"${isBest?'':' style="background:var(--accent3)"'}>+${isBest?25:5}</span>`;
+    el.querySelector('.task-check').onclick=e=>{e.stopPropagation();isBest?toggleBestSelfDay(it.id,ds):toggleReminderDay(it.id,ds);};
     container.appendChild(el);
   });
 }
@@ -2538,7 +2528,7 @@ function checkReminderReset(){
     (state.bonusTasks||[]).forEach(b=>b.done=false);
     state.lastReminderReset=key;
     save();
-    renderReminders();renderBestSelfTasks();renderRing();renderGamify();
+    renderDailyTasks();renderRing();renderGamify();
   }
 }
 function chatDayKey(){
@@ -2554,32 +2544,6 @@ function checkChatReset(){
     save();
   }
 }
-function renderReminders(){
-  checkReminderReset();
-  const list=document.getElementById('reminderList');if(!list)return;
-  list.innerHTML='';
-  const rems=state.dailyReminders||[];
-  if(!rems.length){
-    list.innerHTML='<div style="font-size:11px;color:var(--text3);padding:4px 0">No daily reminders yet. Add one below — it resets every day at 2am Central.</div>';
-  }
-  rems.forEach(r=>{
-    const el=document.createElement('div');el.className=`task-item${r.done?' done':''}`;
-    el.innerHTML=`<div class="task-check"></div><div class="task-text">${r.text}</div><button class="task-edit">✎</button><button class="task-del">✕</button>`;
-    el.querySelector('.task-check').onclick=e=>{e.stopPropagation();toggleReminder(r.id);};
-    el.querySelector('.task-edit').onclick=e=>{e.stopPropagation();const nv=prompt('Edit reminder:',r.text);if(nv===null)return;const t=nv.trim();if(!t)return;r.text=t;save();renderReminders();};
-    el.querySelector('.task-del').onclick=e=>{e.stopPropagation();if(!confirm('Delete this reminder?'))return;state.dailyReminders=state.dailyReminders.filter(x=>x.id!==r.id);save();renderReminders();renderRing();};
-    list.appendChild(el);
-  });
-}
-function addReminder(){
-  const inp=document.getElementById('reminderInput'),txt=inp.value.trim();if(!txt)return;
-  if(!state.dailyReminders)state.dailyReminders=[];
-  state.dailyReminders.push({id:state.nextReminderId++,text:txt,done:false});
-  inp.value='';save();renderReminders();renderRing();
-}
-function toggleReminder(id){
-  toggleReminderDay(id,todayStr());
-}
 // Shared toggle for a reminder's completion on a specific day (ds). Works for today
 // AND any past day — that's what makes reminders retroactively editable from the
 // calendar, same as goal-worked-on and daily tasks already were.
@@ -2594,8 +2558,8 @@ function toggleReminderDay(id,ds){
   }
   addPoints(newDone?5:-5,ds);
   save();
-  if(ds===todayStr()){renderReminders();renderRing();}
-  if(selectedDayStr===ds){renderDayReminders(ds);renderDayMetrics(ds);}
+  if(ds===todayStr()){renderDailyTasks();renderRing();}
+  if(selectedDayStr===ds){renderDayDailyTasks(ds);renderDayMetrics(ds);}
   renderCalendar();
 }
 
@@ -2625,7 +2589,7 @@ function renderGamify(){
       </div>`;
   }
   if(gamifyDetailsOpen)renderGamifyDetails();
-  renderBestSelfTasks();
+  renderDailyTasks();
 }
 function toggleGamifyDetails(){
   gamifyDetailsOpen=!gamifyDetailsOpen;
@@ -2637,32 +2601,6 @@ function toggleGamifyDetails(){
 function renderGamifyDetails(){
   const lt=document.getElementById('gamifyLifetime');if(lt)lt.textContent=`${state.totalPoints||0} pts`;
   renderWeekSummary('gamifyWeekSummary',todayStr());
-}
-function renderBestSelfTasks(){
-  const list=document.getElementById('bonusTaskList');if(!list)return;
-  list.innerHTML='';
-  const tasks=state.bonusTasks||[];
-  if(!tasks.length){
-    list.innerHTML='<div style="font-size:11px;color:var(--text3);padding:4px 0">No Best Self tasks yet. Add one for extra points.</div>';
-    return;
-  }
-  tasks.forEach(b=>{
-    const el=document.createElement('div');el.className=`bonus-item${b.done?' done':''}`;
-    el.innerHTML=`<div class="task-check"></div><div class="bonus-text">${b.text}</div><span class="bonus-pts-tag">+25</span><button class="bonus-edit">✎</button><button class="bonus-del">✕</button>`;
-    el.querySelector('.task-check').onclick=e=>{e.stopPropagation();toggleBonusTask(b.id);};
-    el.querySelector('.bonus-edit').onclick=e=>{e.stopPropagation();const nv=prompt('Edit Best Self task:',b.text);if(nv===null)return;const t=nv.trim();if(!t)return;b.text=t;save();renderBestSelfTasks();};
-    el.querySelector('.bonus-del').onclick=e=>{e.stopPropagation();if(!confirm('Delete this Best Self task?'))return;state.bonusTasks=state.bonusTasks.filter(x=>x.id!==b.id);save();renderBestSelfTasks();};
-    list.appendChild(el);
-  });
-}
-function addBonusTask(){
-  const inp=document.getElementById('bonusInput'),txt=inp.value.trim();if(!txt)return;
-  if(!state.bonusTasks)state.bonusTasks=[];
-  state.bonusTasks.push({id:state.nextBonusTaskId++,text:txt,done:false});
-  inp.value='';save();renderBestSelfTasks();renderRing();
-}
-function toggleBonusTask(id){
-  toggleBestSelfDay(id,todayStr());
 }
 // Shared toggle for a Best Self task's completion on a specific day (ds). Same pattern
 // as toggleReminderDay — works for today and retroactively for any past day.
@@ -2677,9 +2615,63 @@ function toggleBestSelfDay(id,ds){
   }
   addPoints(newDone?25:-25,ds);
   save();
-  if(ds===todayStr()){renderBestSelfTasks();renderRing();}
-  if(selectedDayStr===ds){renderDayBestSelf(ds);renderDayMetrics(ds);}
+  if(ds===todayStr()){renderDailyTasks();renderRing();}
+  if(selectedDayStr===ds){renderDayDailyTasks(ds);renderDayMetrics(ds);}
   renderCalendar();
+}
+function toggleReminder(id){toggleReminderDay(id,todayStr());}
+function toggleBonusTask(id){toggleBestSelfDay(id,todayStr());}
+
+// ── DAILY TASKS — unified Normal + Best Self list ───────────────────────────
+// Backing data stays as two separate arrays (state.dailyReminders = normal tier,
+// state.bonusTasks = bestSelf tier) since their retroactive history maps
+// (reminderHistory/bestSelfHistory) and point values (+5/+25) already work per-array.
+// This layer just renders them together as one visually merged "Daily Tasks" list.
+function renderDailyTasks(){
+  checkReminderReset();
+  const list=document.getElementById('dailyTasksList');if(!list)return;
+  list.innerHTML='';
+  const norm=(state.dailyReminders||[]).map(r=>({...r,tier:'normal'}));
+  const best=(state.bonusTasks||[]).map(b=>({...b,tier:'bestSelf'}));
+  const items=[...norm,...best];
+  if(!items.length){
+    list.innerHTML='<div style="font-size:11px;color:var(--text3);padding:4px 0">No daily tasks yet. Add one below — resets every day at 2am Central.</div>';
+    return;
+  }
+  items.forEach(it=>{
+    const isBest=it.tier==='bestSelf';
+    const el=document.createElement('div');el.className=`${isBest?'bonus-item tier-gold':'task-item'}${it.done?' done':''}`;
+    el.innerHTML=`<div class="task-check"></div><div class="${isBest?'bonus-text':'task-text'}">${isBest?'⭐ ':''}${it.text}</div><span class="bonus-pts-tag"${isBest?'':' style="background:var(--accent3)"'}>+${isBest?25:5}</span><button class="${isBest?'bonus-edit':'task-edit'}">✎</button><button class="${isBest?'bonus-del':'task-del'}">✕</button>`;
+    el.querySelector('.task-check').onclick=e=>{e.stopPropagation();isBest?toggleBonusTask(it.id):toggleReminder(it.id);};
+    el.querySelector(isBest?'.bonus-edit':'.task-edit').onclick=e=>{
+      e.stopPropagation();const nv=prompt(`Edit ${isBest?'Best Self task':'daily task'}:`,it.text);if(nv===null)return;const t=nv.trim();if(!t)return;
+      if(isBest){const b=(state.bonusTasks||[]).find(x=>x.id===it.id);if(b)b.text=t;}
+      else{const r=(state.dailyReminders||[]).find(x=>x.id===it.id);if(r)r.text=t;}
+      save();renderDailyTasks();
+    };
+    el.querySelector(isBest?'.bonus-del':'.task-del').onclick=e=>{
+      e.stopPropagation();if(!confirm(`Delete this ${isBest?'Best Self task':'daily task'}?`))return;
+      if(isBest)state.bonusTasks=state.bonusTasks.filter(x=>x.id!==it.id);
+      else state.dailyReminders=state.dailyReminders.filter(x=>x.id!==it.id);
+      save();renderDailyTasks();renderRing();
+    };
+    list.appendChild(el);
+  });
+}
+// fromDay=true when called from the calendar day panel's add-row (separate input ids);
+// either way this adds to the recurring daily template, not a one-off per-day item.
+function addDailyTask(fromDay){
+  const inp=document.getElementById(fromDay?'dayDailyTaskInput':'dailyTaskInput'),txt=inp.value.trim();if(!txt)return;
+  const tier=document.getElementById(fromDay?'dayDailyTaskTier':'dailyTaskTier').value;
+  if(tier==='bestSelf'){
+    if(!state.bonusTasks)state.bonusTasks=[];
+    state.bonusTasks.push({id:state.nextBonusTaskId++,text:txt,done:false});
+  }else{
+    if(!state.dailyReminders)state.dailyReminders=[];
+    state.dailyReminders.push({id:state.nextReminderId++,text:txt,done:false});
+  }
+  inp.value='';save();renderDailyTasks();renderRing();
+  if(fromDay&&selectedDayStr)renderDayDailyTasks(selectedDayStr);
 }
 
 // ── LOAD FROM SUPABASE ────────────────────────────────────────────────────
@@ -2726,7 +2718,7 @@ load();checkStreak();
 const _now=new Date();calYear=_now.getFullYear();calMonth=_now.getMonth();
 renderHeader();renderCalendar();renderGoals();renderTasks();renderStats();
 initCardColors();applyDragonSkin();requestAnimationFrame(animateDragons);
-checkReminderReset();renderReminders();renderGamify();renderRing();renderDragonScore();renderChat();
+checkReminderReset();renderDailyTasks();renderGamify();renderRing();renderDragonScore();renderChat();
 buildZodiacRing();tickAstroClock();setInterval(tickAstroClock,1000);renderMediaPlayer();
 initTileSystem();
 setInterval(checkReminderReset,60000);
