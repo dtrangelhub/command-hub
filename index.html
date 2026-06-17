@@ -752,6 +752,39 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
     <div class="card-label" style="margin-bottom:7px">This Week</div>
     <div class="week-bar" id="weekBar"></div>
     <div class="week-pip-label" id="weekPipLabels"></div>
+    <hr class="divider">
+    <div class="gamify-clickzone" style="cursor:pointer" onclick="toggleGamifyDetails()" title="Click to expand">
+      <div class="gamify-front">
+        <div class="progress-ring-wrap" id="gamifyRingWrap" style="width:54px;height:54px"></div>
+        <div class="gamify-front-info">
+          <div class="gamify-level" id="gamifyLevel">Level 1</div>
+          <div class="gamify-pts" id="gamifyPts">0 pts today</div>
+        </div>
+        <span class="cal-nav-btn" id="gamifyToggleBtn" style="font-size:11px;width:auto;padding:0 8px;pointer-events:none;margin-left:auto">▾</span>
+      </div>
+      <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
+    </div>
+    <div id="gamifyDetails" style="display:none;margin-top:10px">
+      <div class="day-metrics-row">
+        <div class="dm-stat">Lifetime score: <b id="gamifyLifetime">0 pts</b></div>
+      </div>
+      <div class="card-label" style="margin-bottom:7px">Week in Summary</div>
+      <div class="week-summary-panel" id="gamifyWeekSummary"></div>
+      <hr class="divider">
+      <div class="card-header-row">
+        <div class="card-label" style="margin-bottom:0">✅ Daily Tasks</div>
+        <span style="font-size:10px;color:var(--text3);font-family:var(--mono)">resets 2am CT</span>
+      </div>
+      <div class="task-list" id="dailyTasksList"></div>
+      <div class="task-add-row">
+        <input class="task-input" id="dailyTaskInput" placeholder="Add daily task..." onkeydown="if(event.key==='Enter')addDailyTask()">
+        <select class="task-cat-select" id="dailyTaskTier">
+          <option value="normal">Normal</option>
+          <option value="bestSelf">🌟 Best Self (+25)</option>
+        </select>
+        <button class="add-btn" onclick="addDailyTask()">+</button>
+      </div>
+    </div>
   </div>
 
   <!-- GOALS (hidden by default — open a calendar day to view/edit goal activity) -->
@@ -792,45 +825,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
     </div>
   </div>
 
-  <!-- GAMIFY (core metric — click to expand for Reminders, Best Self, week summary) -->
-  <div class="card yellow" data-tile="gamify" style="grid-column:1/-1">
-    <div class="gamify-clickzone" style="cursor:pointer" onclick="toggleGamifyDetails()" title="Click to expand">
-      <div class="card-header-row">
-        <div class="card-label" style="margin-bottom:0">🎮 Gamify</div>
-        <span class="cal-nav-btn" id="gamifyToggleBtn" style="font-size:11px;width:auto;padding:0 8px;pointer-events:none">Details ▾</span>
-      </div>
-      <div class="gamify-front">
-        <div class="progress-ring-wrap" id="gamifyRingWrap" style="width:54px;height:54px"></div>
-        <div class="gamify-front-info">
-          <div class="gamify-level" id="gamifyLevel">Level 1</div>
-          <div class="gamify-pts" id="gamifyPts">0 pts today</div>
-        </div>
-      </div>
-      <div class="xp-bar"><div class="xp-fill" id="xpFill" style="width:0%"></div></div>
-    </div>
-    <div id="gamifyDetails" style="display:none;margin-top:10px">
-      <hr class="divider">
-      <div class="day-metrics-row">
-        <div class="dm-stat">Lifetime score: <b id="gamifyLifetime">0 pts</b></div>
-      </div>
-      <div class="card-label" style="margin-bottom:7px">Week in Summary</div>
-      <div class="week-summary-panel" id="gamifyWeekSummary"></div>
-      <hr class="divider">
-      <div class="card-header-row">
-        <div class="card-label" style="margin-bottom:0">✅ Daily Tasks</div>
-        <span style="font-size:10px;color:var(--text3);font-family:var(--mono)">resets 2am CT</span>
-      </div>
-      <div class="task-list" id="dailyTasksList"></div>
-      <div class="task-add-row">
-        <input class="task-input" id="dailyTaskInput" placeholder="Add daily task..." onkeydown="if(event.key==='Enter')addDailyTask()">
-        <select class="task-cat-select" id="dailyTaskTier">
-          <option value="normal">Normal</option>
-          <option value="bestSelf">🌟 Best Self (+25)</option>
-        </select>
-        <button class="add-btn" onclick="addDailyTask()">+</button>
-      </div>
-    </div>
-  </div>
 
   <!-- ASK CLAUDE -->
   <div class="card" data-tile="chat" style="grid-column:span 2;--card-color:#6c63ff;--card-color2:#b8b4ff">
