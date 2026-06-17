@@ -681,6 +681,16 @@ body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:1
         </select>
         <button class="add-btn" onclick="addDayTask()">+</button>
       </div>
+      <!-- Best Self for day -->
+      <hr class="divider">
+      <div class="section-mini-label">Best Self This Day</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:5px">Check off Best Self tasks for this day — works retroactively for past days too.</div>
+      <div id="dayBestSelfList"></div>
+      <!-- Reminders for day -->
+      <hr class="divider">
+      <div class="section-mini-label">Reminders This Day</div>
+      <div style="font-size:10px;color:var(--text3);margin-bottom:5px">Check off reminders for this day — works retroactively for past days too.</div>
+      <div id="dayReminderList"></div>
       <!-- Goal activity -->
       <hr class="divider">
       <div class="section-mini-label">Goal Progress This Day</div>
@@ -925,7 +935,7 @@ let state = {
   notes:{}, events:[], goalHistory:{},
   chatMessages:[], nextChatId:1, lastChatReset:'',
   dailyReminders:[], lastReminderReset:'',
-  bonusTasks:[], totalPoints:0,
+  bonusTasks:[], totalPoints:0, bestSelfHistory:{}, reminderHistory:{},
   dailyLog:{}, dragonScore:{orange:0,green:0}, dragonSkin:'og', dragonNames:{orange:'Izikai',green:'Sazuko'}, mediaVideoId:null,
   avatarDataUrl:null,
   tileOrder:[],
@@ -1110,10 +1120,21 @@ function getDayStats(ds){
   const tasksDone=dayTasks.filter(t=>t.done).length,tasksTotal=dayTasks.length;
   const isToday=ds===todayStr();
   const log=(state.dailyLog&&state.dailyLog[ds])||{};
-  const remindersDone=isToday?(state.dailyReminders||[]).filter(r=>r.done).length:(log.remDone||0);
-  const remindersTotal=isToday?(state.dailyReminders||[]).length:(log.remTotal||0);
-  const bonusDone=isToday?(state.bonusTasks||[]).filter(b=>b.done).length:(log.bonusDone||0);
-  const bonusTotal=isToday?(state.bonusTasks||[]).length:(log.bonusTotal||0);
+  // Best Self tasks + reminders are recurring templates that reset daily, but completion
+  // is now recorded per-day in bestSelfHistory/reminderHistory so any day (past or present)
+  // can be checked/unchecked retroactively. Falls back to the old frozen dailyLog snapshot
+  // for days recorded before this history tracking existed.
+  const bHist=(state.bestSelfHistory||{})[ds];
+  const rHist=(state.reminderHistory||{})[ds];
+  const bonusTotal=(state.bonusTasks||[]).length;
+  const remindersTotal=(state.dailyReminders||[]).length;
+  let bonusDone,remindersDone;
+  if(bHist)bonusDone=Object.values(bHist).filter(Boolean).length;
+  else if(isToday)bonusDone=(state.bonusTasks||[]).filter(b=>b.done).length;
+  else bonusDone=log.bonusDone||0;
+  if(rHist)remindersDone=Object.values(rHist).filter(Boolean).length;
+  else if(isToday)remindersDone=(state.dailyReminders||[]).filter(r=>r.done).length;
+  else remindersDone=log.remDone||0;
   const goalLog=(state.goalHistory||{})[ds]||{};
   const goalsWorkedDone=Object.values(goalLog).filter(h=>h.done).length;
   const goalsWorkedTotal=state.goals.length;
@@ -1336,6 +1357,8 @@ function selectDay(ds){
   document.getElementById('dayPanelHeader').textContent=`${MNs[parseInt(m)-1]} ${parseInt(d)}, ${y}`;
   document.getElementById('dayNoteInput').value=state.notes[ds]||'';
   renderDayTasks(ds);
+  renderDayBestSelf(ds);
+  renderDayReminders(ds);
   renderDayGoalActivity(ds);
   renderDayEvents(ds);
   renderDayMetrics(ds);
@@ -1428,6 +1451,39 @@ function toggleDayTask(id,ds){
 function closeDay(){
   document.getElementById('dayPanel').classList.remove('open');
   selectedDayStr=null;selectedDate=null;renderCalendar();
+}
+
+// ── BEST SELF / REMINDERS — retroactive per-day checklists ─────────────────
+// Templates (state.bonusTasks / state.dailyReminders) reset daily, but each day's
+// completion is recorded separately in bestSelfHistory/reminderHistory, keyed by date.
+// That's what lets these be checked/unchecked for any past day from the calendar.
+function renderDayBestSelf(ds){
+  const container=document.getElementById('dayBestSelfList');if(!container)return;
+  container.innerHTML='';
+  const tasks=state.bonusTasks||[];
+  if(!tasks.length){container.innerHTML='<div style="font-size:11px;color:var(--text3);padding:4px 0">No Best Self tasks yet.</div>';return;}
+  const hist=(state.bestSelfHistory||{})[ds]||{};
+  tasks.forEach(b=>{
+    const done=!!hist[b.id];
+    const el=document.createElement('div');el.className=`bonus-item${done?' done':''}`;
+    el.innerHTML=`<div class="task-check${done?' done':''}"></div><div class="bonus-text">${b.text}</div><span class="bonus-pts-tag">+25</span>`;
+    el.querySelector('.task-check').onclick=e=>{e.stopPropagation();toggleBestSelfDay(b.id,ds);};
+    container.appendChild(el);
+  });
+}
+function renderDayReminders(ds){
+  const container=document.getElementById('dayReminderList');if(!container)return;
+  container.innerHTML='';
+  const rems=state.dailyReminders||[];
+  if(!rems.length){container.innerHTML='<div style="font-size:11px;color:var(--text3);padding:4px 0">No daily reminders yet.</div>';return;}
+  const hist=(state.reminderHistory||{})[ds]||{};
+  rems.forEach(r=>{
+    const done=!!hist[r.id];
+    const el=document.createElement('div');el.className=`task-item${done?' done':''}`;
+    el.innerHTML=`<div class="task-check${done?' done':''}"></div><div class="task-text">${r.text}</div><span class="bonus-pts-tag">+5</span>`;
+    el.querySelector('.task-check').onclick=e=>{e.stopPropagation();toggleReminderDay(r.id,ds);};
+    container.appendChild(el);
+  });
 }
 
 // ── EVENTS ────────────────────────────────────────────────────────────────
@@ -2522,10 +2578,25 @@ function addReminder(){
   inp.value='';save();renderReminders();renderRing();
 }
 function toggleReminder(id){
-  const r=(state.dailyReminders||[]).find(x=>x.id===id);if(!r)return;
-  r.done=!r.done;
-  addPoints(r.done?5:-5);
-  save();renderReminders();renderRing();
+  toggleReminderDay(id,todayStr());
+}
+// Shared toggle for a reminder's completion on a specific day (ds). Works for today
+// AND any past day — that's what makes reminders retroactively editable from the
+// calendar, same as goal-worked-on and daily tasks already were.
+function toggleReminderDay(id,ds){
+  if(!state.reminderHistory)state.reminderHistory={};
+  if(!state.reminderHistory[ds])state.reminderHistory[ds]={};
+  const newDone=!state.reminderHistory[ds][id];
+  state.reminderHistory[ds][id]=newDone;
+  if(ds===todayStr()){
+    const r=(state.dailyReminders||[]).find(x=>x.id===id);
+    if(r)r.done=newDone;
+  }
+  addPoints(newDone?5:-5,ds);
+  save();
+  if(ds===todayStr()){renderReminders();renderRing();}
+  if(selectedDayStr===ds){renderDayReminders(ds);renderDayMetrics(ds);}
+  renderCalendar();
 }
 
 // ── GAMIFY ────────────────────────────────────────────────────────────────
@@ -2591,10 +2662,24 @@ function addBonusTask(){
   inp.value='';save();renderBestSelfTasks();renderRing();
 }
 function toggleBonusTask(id){
-  const b=(state.bonusTasks||[]).find(x=>x.id===id);if(!b)return;
-  b.done=!b.done;
-  addPoints(b.done?25:-25);
-  save();renderBestSelfTasks();renderRing();
+  toggleBestSelfDay(id,todayStr());
+}
+// Shared toggle for a Best Self task's completion on a specific day (ds). Same pattern
+// as toggleReminderDay — works for today and retroactively for any past day.
+function toggleBestSelfDay(id,ds){
+  if(!state.bestSelfHistory)state.bestSelfHistory={};
+  if(!state.bestSelfHistory[ds])state.bestSelfHistory[ds]={};
+  const newDone=!state.bestSelfHistory[ds][id];
+  state.bestSelfHistory[ds][id]=newDone;
+  if(ds===todayStr()){
+    const b=(state.bonusTasks||[]).find(x=>x.id===id);
+    if(b)b.done=newDone;
+  }
+  addPoints(newDone?25:-25,ds);
+  save();
+  if(ds===todayStr()){renderBestSelfTasks();renderRing();}
+  if(selectedDayStr===ds){renderDayBestSelf(ds);renderDayMetrics(ds);}
+  renderCalendar();
 }
 
 // ── LOAD FROM SUPABASE ────────────────────────────────────────────────────
